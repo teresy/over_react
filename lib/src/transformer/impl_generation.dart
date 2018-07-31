@@ -16,6 +16,7 @@ library over_react.transformer.impl_generation;
 
 import 'package:analyzer/analyzer.dart';
 import 'package:barback/barback.dart';
+import 'package:meta/meta.dart';
 import 'package:over_react/src/component_declaration/annotations.dart' as annotations;
 import 'package:over_react/src/transformer/declaration_parsing.dart';
 import 'package:over_react/src/transformer/text_util.dart';
@@ -75,7 +76,7 @@ class ImplGenerator {
       final String propsImplName = '$generatedPrefix${propsName}Impl';
 
       final String componentClassName = declarations.component.node.name.toString();
-      final String componentClassImplMixinName = '$generatedPrefix${componentClassName}ImplMixin';
+      final String componentClassImplName = '$generatedPrefix${componentClassName}';
 
       final String componentFactoryName = getComponentFactoryName(componentClassName);
 
@@ -245,12 +246,18 @@ class ImplGenerator {
       // ----------------------------------------------------------------------
       //   Component implementation
       // ----------------------------------------------------------------------
+      const redirectingFactoryConstructorName = '';
+      const componentClassPrivateConstructorName = '_';
+      const componentImplClassConstructorName = '';
+
       implementations
-        ..writeln('// Concrete component implementation mixin.')
+        ..writeln('// Concrete component implementation.')
         ..writeln('//')
         ..writeln('// Implements typed props/state factories, defaults `consumedPropKeys` to the keys')
         ..writeln('// generated for the associated props class.')
-        ..writeln('class $componentClassImplMixinName {')
+        ..writeln('class $componentClassImplName extends $componentClassName {') // FIXME generics
+        ..writeln('  $componentClassImplName() : super.$componentClassPrivateConstructorName();')
+        ..writeln()
         ..writeln('  /// Let [UiComponent] internals know that this class has been generated.')
         ..writeln('  @override')
         ..writeln('  bool get \$isClassGenerated => true;')
@@ -260,24 +267,61 @@ class ImplGenerator {
         ..writeln('  @override')
         ..writeln('  final List<ConsumedProps> \$defaultConsumedProps = '
                         'const [$propsName.$staticConsumedPropsName];')
+        ..writeln()
+        ..writeln('  $typedPropsFactoryImpl')
+        ..writeln('  $typedStateFactoryImpl')
         ..writeln('}');
 
-      if (declarations.component.node.withClause != null) {
-        transformedFile.insert(
-            sourceFile.location(declarations.component.node.withClause.mixinTypes.last.end),
-            ', $componentClassImplMixinName'
-        );
-      } else if (declarations.component.node.extendsClause != null) {
-        transformedFile.insert(
-            sourceFile.location(declarations.component.node.extendsClause.end),
-            ' with $componentClassImplMixinName'
-        );
-      } else {
-        transformedFile.insert(
-            sourceFile.location(declarations.component.node.name.end),
-            ' extends Object with $componentClassImplMixinName'
-        );
+      String validateOrGenerateBoilerplate({
+        @required TransformLogger logger,
+      }) {
+        // variable to help reuse this code with the builder
+        const isTransformer = true;
+
+        final constructors = new List<ConstructorDeclaration>.from(declarations.component.node.members.where((member) => member is ConstructorDeclaration));
+
+        if (constructors.isEmpty) {
+          if (isTransformer) {
+            // todo warn about constructor boilerplate
+            logger.warning('Yo dawg, get on that new constructor boilerplate!');
+
+            transformedFile.insert(
+              sourceFile.location(declarations.component.node.leftBracket.end),
+              '$componentClassName._(); '
+                  'factory $componentClassName() = $componentClassImplName;', // FIXME add generic parameters
+            );
+          } else {
+            return 'Must implement constructor boilerplate to use builder.';
+          }
+        } else if (constructors.length >= 2) {;
+
+          final privateConstructor = constructors.firstWhere((constructor) {
+            return (constructor.name ?? '').toString() == componentClassPrivateConstructorName;
+          }, orElse: () => null);
+          if (privateConstructor == null) {
+            return 'Missing private constructor';
+          }
+          if (privateConstructor.parameters.parameters.length != 0) {
+            return 'Default constructor must have no arguments.';
+          }
+
+          final redirectingFactoryConstructor = constructors.firstWhere((constructor) {
+            return (constructor.name ?? '') == redirectingFactoryConstructorName && constructor.factoryKeyword != null;
+          }, orElse: () => null);
+          if (redirectingFactoryConstructor == null) {
+            return 'Missing redirecting factory constructor';
+          }
+          if (redirectingFactoryConstructor.redirectedConstructor.type.name != componentClassImplName ||
+              (redirectingFactoryConstructor.redirectedConstructor.name.name ?? '') != componentImplClassConstructorName) {
+            return 'Redirecting factory should point to $componentClassImplName()';
+          }
+          // FIXME validate generic parameters
+        }
       }
+
+      validateOrGenerateBoilerplate(
+        logger: logger,
+      );
 
       var implementsTypedPropsStateFactory = declarations.component.node.members.any((member) =>
           member is MethodDeclaration &&
@@ -290,14 +334,6 @@ class ImplGenerator {
         logger.warning(
             'Components should not add their own implementions of typedPropsFactory or typedStateFactory.',
             span: getSpan(sourceFile, declarations.component.node)
-        );
-      } else {
-        // For some reason, strong mode is okay with these declarations being in the component,
-        // but not in the mixin.
-        // TODO use long-term solution of component impl class instantiated via factory constructor
-        transformedFile.insert(
-            sourceFile.location(declarations.component.node.leftBracket.end),
-            '   /* GENERATED IMPLEMENTATIONS */ $typedPropsFactoryImpl $typedStateFactoryImpl'
         );
       }
     }
