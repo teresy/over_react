@@ -147,31 +147,46 @@ abstract class _FluxComponentMixin<TProps extends FluxUiProps> implements Batche
   /// These subscriptions are canceled when the component is unmounted.
   List<StreamSubscription> _subscriptions = [];
 
+  void _checkIfDisposed(Store store) {
+    String message = 'Cannot listen to a disposed/disposing Store.';
+
+    var isDisposedOrDisposing = store.isOrWillBeDisposed ?? false;
+
+    assert(!isDisposedOrDisposing, '$message This can be caused by BatchedRedraws '
+      'mounting the component asynchronously after the store has been disposed. If you are '
+      'in a test environment, try adding an `await window.animationFrame;` before disposing your '
+      'store.');
+
+    if (isDisposedOrDisposing) _logger.warning(message);
+  }
+
+  @protected
+  void listenToStoreForRedraw(Store store) {
+    _checkIfDisposed(store);
+    _subscriptions.add(store.listen(handleRedrawOn));
+  }
+
+  @mustCallSuper
+  @protected
+  void handleRedrawOn(Store store) {
+    redraw();
+  }
+
   void componentWillMount() {
-    /// Subscribe to all applicable stores.
-    ///
-    /// [Store]s returned by [redrawOn] will have their triggers mapped directly to this components
-    /// redraw function.
-    ///
-    /// [Store]s included in the [getStoreHandlers] result will be listened to and wired up to their
-    /// respective handlers.
-    Map<Store, StoreHandler> handlers = new Map.fromIterable(redrawOn(),
-        value: (_) => (_) => redraw())..addAll(getStoreHandlers());
-
-    handlers.forEach((store, handler) {
-      String message = 'Cannot listen to a disposed/disposing Store.';
-
-      var isDisposedOrDisposing = store.isOrWillBeDisposed ?? false;
-
-      assert(!isDisposedOrDisposing, '$message This can be caused by BatchedRedraws '
-        'mounting the component asynchronously after the store has been disposed. If you are '
-        'in a test environment, try adding an `await window.animationFrame;` before disposing your '
-        'store.');
-
-      if (isDisposedOrDisposing) _logger.warning(message);
-
-      StreamSubscription subscription = store.listen(handler);
-      _subscriptions.add(subscription);
+    // Subscribe to all applicable stores. Stores returned by `redrawOn()` will
+    // have their triggers mapped directly to this components redraw function.
+    // Stores included in the `getStoreHandlers()` result will be listened to
+    // and wired up to their respective handlers.
+    final storeHandlers = getStoreHandlers();
+    for (var store in redrawOn()) {
+      // If the store is handled by storeHandlers, don't subscribe to it here.
+      if (!storeHandlers.containsKey(store)) {
+        listenToStoreForRedraw(store);
+      }
+    }
+    storeHandlers.forEach((store, handler) {
+      _checkIfDisposed(store);
+      _subscriptions.add(store.listen(handler));
     });
   }
 
