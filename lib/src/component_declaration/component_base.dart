@@ -628,39 +628,32 @@ abstract class UiProps extends MapBase
     return componentFactory(props, children);
   }
 
-  /// Creates a new component with this builder's props and the specified [children].
+  /// Creates a new component with this builder's props and the specified `children` (c1 - c52).
   ///
   /// _(alias for [build] with support for variadic children)_
-  ///
-  /// This method actually takes any number of children as arguments ([c2], [c3], ...) via [noSuchMethod].
-  ///
-  /// Restricted statically to 40 arguments until the dart2js fix in
-  /// <https://github.com/dart-lang/sdk/pull/26032> is released.
-  ReactElement call([children, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40]);
+  ReactElement call([c1 = _notSpecified, c2 = _notSpecified, c3 = _notSpecified, c4 = _notSpecified, c5 = _notSpecified, c6 = _notSpecified, c7 = _notSpecified, c8 = _notSpecified, c9 = _notSpecified, c10 = _notSpecified, c11 = _notSpecified, c12 = _notSpecified, c13 = _notSpecified, c14 = _notSpecified, c15 = _notSpecified, c16 = _notSpecified, c17 = _notSpecified, c18 = _notSpecified, c19 = _notSpecified, c20 = _notSpecified, c21 = _notSpecified, c22 = _notSpecified, c23 = _notSpecified, c24 = _notSpecified, c25 = _notSpecified, c26 = _notSpecified, c27 = _notSpecified, c28 = _notSpecified, c29 = _notSpecified, c30 = _notSpecified, c31 = _notSpecified, c32 = _notSpecified, c33 = _notSpecified, c34 = _notSpecified, c35 = _notSpecified, c36 = _notSpecified, c37 = _notSpecified, c38 = _notSpecified, c39 = _notSpecified, c40 = _notSpecified, c41 = _notSpecified, c42 = _notSpecified, c43 = _notSpecified, c44 = _notSpecified, c45 = _notSpecified, c46 = _notSpecified, c47 = _notSpecified, c48 = _notSpecified, c49 = _notSpecified, c50 = _notSpecified, c51 = _notSpecified, c52 = _notSpecified]) {
+    var childArguments = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c50, c51, c52].takeWhile((child) => child != _notSpecified).toList();
 
-  /// Supports variadic children of the form `call([child1, child2, child3...])`.
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #call && invocation.isMethod) {
-      final positionalArguments = invocation.positionalArguments;
-      assert(_validateChildren(positionalArguments.length == 1 ? positionalArguments.single : positionalArguments));
+    assert(() {
+      // These checks are within the assert so they are not done in production.
+      var children = childArguments;
 
-      final factory = componentFactory;
-      if (factory is ReactComponentFactoryProxy) {
-        // Use `build` instead of using emulated function behavior to work around DDC issue
-        // https://github.com/dart-lang/sdk/issues/29904
-        // Should have the benefit of better performance; TODO optimize type check?
-        // ignore: avoid_as
-        return factory.build(props, invocation.positionalArguments);
-      } else {
-        var parameters = []
-          ..add(props)
-          ..addAll(invocation.positionalArguments);
-        return Function.apply(factory, parameters);
+      if (children.length == 1) {
+        children = children.single;
       }
-    }
 
-    return super.noSuchMethod(invocation);
+      return _validateChildren(children);
+    });
+
+    final factory = componentFactory;
+    if (factory is ReactComponentFactoryProxy) {
+      // Use `build` instead of using emulated function behavior to work around DDC issue
+      // https://github.com/dart-lang/sdk/issues/29904
+      // Should have the benefit of better performance; TODO optimize type check?
+      return factory.build(props, childArguments);
+    } else {
+      throw new UnsupportedError('componentFactory can only be ReactComponentFactoryProxy');
+    }
   }
 
   /// Validates that no [children] are instances of [UiProps], and prints a helpful message for a better debugging
@@ -690,6 +683,11 @@ abstract class UiProps extends MapBase
   }
 
   Function get componentFactory;
+}
+
+const _notSpecified = const NotSpecified();
+class NotSpecified {
+  const NotSpecified();
 }
 
 /// A class that declares the `_map` getter shared by [PropsMapViewMixin]/[StateMapViewMixin] and [MapViewMixin].
