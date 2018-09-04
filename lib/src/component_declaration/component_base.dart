@@ -633,23 +633,25 @@ abstract class UiProps extends MapBase
   /// _(alias for [build] with support for variadic children)_
   ReactElement call([c1 = _notSpecified, c2 = _notSpecified, c3 = _notSpecified, c4 = _notSpecified, c5 = _notSpecified, c6 = _notSpecified, c7 = _notSpecified, c8 = _notSpecified, c9 = _notSpecified, c10 = _notSpecified, c11 = _notSpecified, c12 = _notSpecified, c13 = _notSpecified, c14 = _notSpecified, c15 = _notSpecified, c16 = _notSpecified, c17 = _notSpecified, c18 = _notSpecified, c19 = _notSpecified, c20 = _notSpecified, c21 = _notSpecified, c22 = _notSpecified, c23 = _notSpecified, c24 = _notSpecified, c25 = _notSpecified, c26 = _notSpecified, c27 = _notSpecified, c28 = _notSpecified, c29 = _notSpecified, c30 = _notSpecified, c31 = _notSpecified, c32 = _notSpecified, c33 = _notSpecified, c34 = _notSpecified, c35 = _notSpecified, c36 = _notSpecified, c37 = _notSpecified, c38 = _notSpecified, c39 = _notSpecified, c40 = _notSpecified, c41 = _notSpecified, c42 = _notSpecified, c43 = _notSpecified, c44 = _notSpecified, c45 = _notSpecified, c46 = _notSpecified, c47 = _notSpecified, c48 = _notSpecified, c49 = _notSpecified, c50 = _notSpecified, c51 = _notSpecified, c52 = _notSpecified]) {
     List childArguments;
-    if (c1 == _notSpecified) {
+    // Use `identical` since it compiles down to `===` in dart2js instead of calling equality helper functions,
+    // and we don't want to allow any object overriding `operator==` to claim it's equal to `_notSpecified`.
+    if (identical(c1, _notSpecified)) {
       childArguments = [];
-    } else if (c2 == _notSpecified) {
+    } else if (identical(c2, _notSpecified)) {
       childArguments = [c1];
-    } else if (c3 == _notSpecified) {
+    } else if (identical(c3, _notSpecified)) {
       childArguments = [c1, c2];
-    } else if (c4 == _notSpecified) {
+    } else if (identical(c4, _notSpecified)) {
       childArguments = [c1, c2, c3];
-    } else if (c5 == _notSpecified) {
+    } else if (identical(c5, _notSpecified)) {
       childArguments = [c1, c2, c3, c4];
-    } else if (c6 == _notSpecified) {
+    } else if (identical(c6, _notSpecified)) {
       childArguments = [c1, c2, c3, c4, c5];
-    } else if (c7 == _notSpecified) {
+    } else if (identical(c7, _notSpecified)) {
       childArguments = [c1, c2, c3, c4, c5, c6];
     } else {
       childArguments = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c50, c51, c52]
-        .takeWhile((child) => child != _notSpecified)
+        .takeWhile((child) => !identical(child, _notSpecified))
         .toList();
     }
 
